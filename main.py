@@ -1,4 +1,4 @@
-# code so far. Spawns enemies at random place and a mock tower can attack enemies within a radius on a map drawn from a text file
+# code improved, tower placed with mouseclick, enemy travels straight line with a press, tower can attack enemy
 
 
 
@@ -44,22 +44,26 @@ class Enemy(pygame.sprite.Sprite):
 
 class Tower(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        self.cooldown = 0
+        self.cooldown = 60
         self.maxcooldown = 60
-        self.oncooldown = False
-        self.radius = 50
-        self.x = x
-        self.y = y
+        self.oncooldown = True
+        self.radius = 150
+        self.dmg = 10
+        self.x = x - size[0] / scale / 2
+        self.y = y - size[0] / scale / 2
         self.Img = pygame.transform.scale(pygame.image.load("basictower.png"), (size[0] / scale, size[1] / scale))
         pygame.sprite.Sprite.__init__(self)
         self.rect = self.Img.get_rect()
     def drawradius(self):
-        pygame.draw.circle(surface, (255,255,255, 100), (self.x, self.y), self.radius)
+        self.r = pygame.draw.circle(surface, (255,255,255, 100), (self.x + size[0] / scale / 2, self.y + size[0] / scale / 2), self.radius)
+    def isoncooldown(self):
+        return self.oncooldown
 
 enemies = []
+towers = []
 
-for i in range(7):
-    enemies.append(Enemy(random.randint(0, 800), random.randint(0,800)))
+
+enemies.append(Enemy(0,80))
 
 
 while run: # main game loop
@@ -69,6 +73,10 @@ while run: # main game loop
             run = False
         if event.type == pygame.MOUSEBUTTONDOWN:
             temp = pygame.mouse.get_pos()
+            towers.append(Tower(temp[0], temp[1]))
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_a:
+                enemies.append(Enemy(0, 80))
 
     # logic
 
@@ -95,33 +103,56 @@ while run: # main game loop
 
     for e in enemies: # draws all the enemies onto the screen
         screen.blit(e.Img, (e.x, e.y))
-
-    towerRange = pygame.draw.circle(screen, (255,255,255), temp, 50) # mock tower range
-
+        e.x = e.x+1
+    for t in towers:
+        screen.blit(t.Img, (t.x, t.y))
+        t.drawradius()
     # returns collisions between enemies and the range of a tower, tower damages enemy collided with
-    for e in enemies:
-        rect = pygame.Rect(e.x, e.y, int(size[0]/scale), int(size[0]/scale)) # creates a rect within the borders of the enemy
-        if pygame.Rect(towerRange).colliderect(rect) == True: # tests if the rect of the tower range and enemy collide, returns the enemy who was there
-            if oncooldown == False:
-                pygame.draw.line(screen, (255,0,0), temp, (e.x, e.y))
-                e.damage(10)
-                if e.isDead():
-                    enemies.pop(enemies.index(e))
-                oncooldown = True
-                cooldown = 60
-                print(e.hp)
-            else:
-                cooldown -= 0.5
-                if cooldown <=0:
-                    oncooldown = False
+    # for e in enemies:
+    #     rect = pygame.Rect(e.x, e.y, int(size[0]/scale), int(size[0]/scale)) # creates a rect within the borders of the enemy
+    #     if pygame.Rect(towerRange).colliderect(rect) == True: # tests if the rect of the tower range and enemy collide, returns the enemy who was there
+    #         if oncooldown == False:
+    #             pygame.draw.line(screen, (255,0,0), temp, (e.x, e.y))
+    #             e.damage(10)
+    #             if e.isDead():
+    #                 enemies.pop(enemies.index(e))
+    #             oncooldown = True
+    #             cooldown = 60
+    #             print(e.hp)
+    #         else:
+    #             cooldown -= 0.5
+    #             if cooldown <=0:
+    #                 oncooldown = False
 
+    for t in towers:
+        print(t.oncooldown)
+        for e in enemies:
+            rect = pygame.Rect(e.x, e.y, int(size[0] / scale), int(size[0] / scale))
+            rect2 = pygame.Rect(t.x, t.y, int(size[0] / scale), int(size[0] / scale))
+            if pygame.Rect(t.r).colliderect(rect) == True:
+                print(e)
+                print(t.isoncooldown())
+                if t.isoncooldown() == False:
+                    pygame.draw.line(screen, (255, 0, 0), (t.x, t.y), (e.x, e.y), width=5)
+                    e.damage(t.dmg)
+                    print(e.hp)
+                    if e.isDead():
+                        enemies.pop(enemies.index(e))
+                    t.oncooldown = True
+                    t.cooldown = t.maxcooldown
+                    break
+        if t.isoncooldown() == True:
+            t.cooldown -= 10
+            if t.cooldown <= 0:
+                t.oncooldown = False
 
 
 
     # update
+    screen.blit(surface, (0,0))
     pygame.display.flip()
     # frame rate limit
-    clock.tick(30)
+    clock.tick(60)
 
 pygame.quit()
 
