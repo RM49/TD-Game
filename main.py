@@ -1,22 +1,28 @@
-# code improved, tower placed with mouseclick, enemy travels straight line with a press, tower can attack enemy
+# code improved, tower placed with mouseclick, enemy travels accross map based on predetermined route, towers can attack enemy
 
 
 
 import pygame
 import random
+import copy
+import time
+
 size = (800, 800)
 scale=10
 run = True
 clock = pygame.time.Clock()
 
 # tile imgs
-grassImg = pygame.transform.scale(pygame.image.load("grass.png"), (size[0]/scale, size[1]/scale))
-dirtImg = pygame.transform.scale(pygame.image.load("dirt.png"), (size[0]/scale, size[1]/scale))
-waterImg = pygame.transform.scale(pygame.image.load("water.png"), (size[0]/scale, size[1]/scale))
+grassImg = pygame.transform.scale(pygame.image.load("grass.png"), (size[0]//scale, size[1]//scale))
+dirtImg = pygame.transform.scale(pygame.image.load("dirt.png"), (size[0]//scale, size[1]//scale))
+waterImg = pygame.transform.scale(pygame.image.load("water.png"), (size[0]//scale, size[1]//scale))
 
 map = open("map1", "r")
 tiles = map.readlines()
 map.close()
+
+route1 = [(0, 80), (640, 80), (640, 640), (800, 640)]
+health = 150
 
 pygame.init()
 screen = pygame.display.set_mode(size)
@@ -27,11 +33,13 @@ oncooldown = False
 cooldown = 0
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        self.hp = 100
+        self.hp = 10000
         self.speed = 10
         self.x = x
         self.y = y
-        self.Img = pygame.transform.scale(pygame.image.load("duck.png"), (size[0]/scale, size[1]/scale))
+        self.waypointval = 0
+        self.weight = 1
+        self.Img = pygame.transform.scale(pygame.image.load("duck.png"), (size[0]//scale, size[1]//scale))
         pygame.sprite.Sprite.__init__(self)
         self.rect = self.Img.get_rect()
     def damage(self, amt):
@@ -52,18 +60,17 @@ class Tower(pygame.sprite.Sprite):
         self.x = x - size[0] / scale / 2
         self.y = y - size[0] / scale / 2
         self.Img = pygame.transform.scale(pygame.image.load("basictower.png"), (size[0] / scale, size[1] / scale))
-        pygame.sprite.Sprite.__init__(self)
         self.rect = self.Img.get_rect()
+        pygame.sprite.Sprite.__init__(self)
+
     def drawradius(self):
         self.r = pygame.draw.circle(surface, (255,255,255, 100), (self.x + size[0] / scale / 2, self.y + size[0] / scale / 2), self.radius)
     def isoncooldown(self):
         return self.oncooldown
 
+
 enemies = []
 towers = []
-
-
-enemies.append(Enemy(0,80))
 
 
 while run: # main game loop
@@ -76,7 +83,7 @@ while run: # main game loop
             towers.append(Tower(temp[0], temp[1]))
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
-                enemies.append(Enemy(0, 80))
+                    enemies.append(Enemy(-80, 80))
 
     # logic
 
@@ -101,31 +108,34 @@ while run: # main game loop
         count2=0
         count += 1
 
+    for l in route1:
+        pygame.draw.circle(screen, (0, 0, 0), l, 25)
+
     for e in enemies: # draws all the enemies onto the screen
         screen.blit(e.Img, (e.x, e.y))
-        e.x = e.x+1
+        if e.x <= route1[e.waypointval][0]:
+            e.x += 1
+        elif e.x >= route1[e.waypointval][0]:
+            e.x -= 1
+        if e.y <= route1[e.waypointval][1]:
+            e.y += 1
+        elif e.y >= route1[e.waypointval][1]:
+            e.y -= 1
+        if e.x == route1[e.waypointval][0] and e.y == route1[e.waypointval][1]:
+            e.waypointval += 1
+            if e.waypointval > len(route1) - 1:
+                health -= e.weight
+                enemies.pop(enemies.index(e))
+                print(health)
+
+
+
     for t in towers:
         screen.blit(t.Img, (t.x, t.y))
         t.drawradius()
-    # returns collisions between enemies and the range of a tower, tower damages enemy collided with
-    # for e in enemies:
-    #     rect = pygame.Rect(e.x, e.y, int(size[0]/scale), int(size[0]/scale)) # creates a rect within the borders of the enemy
-    #     if pygame.Rect(towerRange).colliderect(rect) == True: # tests if the rect of the tower range and enemy collide, returns the enemy who was there
-    #         if oncooldown == False:
-    #             pygame.draw.line(screen, (255,0,0), temp, (e.x, e.y))
-    #             e.damage(10)
-    #             if e.isDead():
-    #                 enemies.pop(enemies.index(e))
-    #             oncooldown = True
-    #             cooldown = 60
-    #             print(e.hp)
-    #         else:
-    #             cooldown -= 0.5
-    #             if cooldown <=0:
-    #                 oncooldown = False
+
 
     for t in towers:
-        print(t.oncooldown)
         for e in enemies:
             rect = pygame.Rect(e.x, e.y, int(size[0] / scale), int(size[0] / scale))
             rect2 = pygame.Rect(t.x, t.y, int(size[0] / scale), int(size[0] / scale))
@@ -155,4 +165,6 @@ while run: # main game loop
     clock.tick(60)
 
 pygame.quit()
+
+
 
