@@ -1,4 +1,4 @@
-# code improved, tower placed with mouseclick, enemy travels accross map based on predetermined route, towers can attack enemy
+# code is now messy, now includes ability to purchase 2 different towers and stop and start enemies moving into the map with a button
 
 
 
@@ -9,6 +9,7 @@ import time
 
 size = (800, 800)
 scale=10
+windowsize = (1000,800)
 run = True
 clock = pygame.time.Clock()
 
@@ -23,9 +24,13 @@ map.close()
 
 route1 = [(0, 80), (640, 80), (640, 640), (800, 640)]
 health = 150
+money = 2000
 
 pygame.init()
-screen = pygame.display.set_mode(size)
+pygame.font.init()
+my_font = pygame.font.SysFont("arial", 30)
+
+screen = pygame.display.set_mode(windowsize)
 surface = pygame.Surface(size, pygame.SRCALPHA)
 
 temp = (50,50)
@@ -33,7 +38,7 @@ oncooldown = False
 cooldown = 0
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        self.hp = 10000
+        self.hp = 100
         self.speed = 10
         self.x = x
         self.y = y
@@ -68,10 +73,28 @@ class Tower(pygame.sprite.Sprite):
     def isoncooldown(self):
         return self.oncooldown
 
+class Tower2(Tower):
+    def __init__(self, x, y):
+        Tower.__init__(self, x, y)
+        self.dmg = 50
+        self.maxcooldown = 20
+        self.cooldown = 20
+        self.radius = 250
+        self.Img = pygame.transform.scale(pygame.image.load("bigtower.png"), (size[0] / scale, size[1] / scale))
+
+
 
 enemies = []
 towers = []
 
+tower1buy = False
+Tower1cost = 500
+tower2buy = False
+Tower2cost = 1500
+roundgo = False
+
+
+enemydelay = 5
 
 while run: # main game loop
     # events, keypresses
@@ -79,17 +102,51 @@ while run: # main game loop
         if event.type == pygame.QUIT:
             run = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            temp = pygame.mouse.get_pos()
-            towers.append(Tower(temp[0], temp[1]))
+            m = pygame.mouse.get_pos()
+
+            # tower 1 stuff
+            if m[0] >= 850 and m[0] <= 950 and m[1] >= 40 and m[1] <= 120:
+                if tower1buy == True:
+                    tower1buy = False
+                elif tower1buy == False:
+                    tower1buy = True
+                    tower2buy = False
+            if tower1buy == True and m[0] < 800 and money >= Tower1cost:
+                towers.append(Tower(m[0], m[1]))
+                money -= Tower1cost
+
+            #tower 2 stuff
+
+            if m[0] >= 850 and m[0] <= 950 and m[1] >= 200 and m[1] <= 280:
+                if tower2buy == True:
+                    tower2buy = False
+                elif tower2buy == False:
+                    tower1buy = False
+                    tower2buy = True
+            if tower2buy == True and m[0] < 800 and money >= Tower2cost:
+                towers.append(Tower2(m[0], m[1]))
+                money -= Tower2cost
+
+            if m[0] >= 850 and m[0] <= 950 and m[1] >= 720 and m[1] <= 800:
+                if roundgo == True:
+                    roundgo = False
+                elif roundgo == False:
+                    roundgo = True
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
                     enemies.append(Enemy(-80, 80))
 
     # logic
+    if roundgo:
+        enemydelay -= 1
+        if enemydelay <= 0:
+            enemies.append(Enemy(-80, 80))
+            enemydelay = 60
+
 
     # graphics
-    screen.fill((255,255,255))
-    screen.blit(grassImg, (10,100))
+    screen.fill((101, 79, 33))
+
     # maploader
     count = 0
     count2 = 0
@@ -107,9 +164,6 @@ while run: # main game loop
             count2 += 1
         count2=0
         count += 1
-
-    for l in route1:
-        pygame.draw.circle(screen, (0, 0, 0), l, 25)
 
     for e in enemies: # draws all the enemies onto the screen
         screen.blit(e.Img, (e.x, e.y))
@@ -135,6 +189,26 @@ while run: # main game loop
         t.drawradius()
 
 
+    roundgocolour = (0, 255, 0)
+    if roundgo:
+        roundgocolour = (255, 0, 0)
+    menubutton = pygame.draw.rect(screen, roundgocolour, pygame.Rect(850, 720, 100, 80))
+
+    tower1buttoncolour = (0, 0, 255)
+    if tower1buy:
+        tower1buttoncolour = (0, 100, 100)
+
+    basetowermenu = pygame.draw.rect(screen, tower1buttoncolour, pygame.Rect(850, 40, 100, 80))
+
+    tower2buttoncolour = (0, 0, 255)
+    if tower2buy:
+        tower2buttoncolour = (0, 200, 200)
+
+    bigtowermenu = pygame.draw.rect(screen, tower2buttoncolour, pygame.Rect(850, 200, 100, 80))
+
+    moneytext = my_font.render("£" + str(money), False, (255,255,255))
+    screen.blit(moneytext, (850, 0))
+
     for t in towers:
         for e in enemies:
             rect = pygame.Rect(e.x, e.y, int(size[0] / scale), int(size[0] / scale))
@@ -148,6 +222,7 @@ while run: # main game loop
                     print(e.hp)
                     if e.isDead():
                         enemies.pop(enemies.index(e))
+                        money += 50
                     t.oncooldown = True
                     t.cooldown = t.maxcooldown
                     break
@@ -165,6 +240,8 @@ while run: # main game loop
     clock.tick(60)
 
 pygame.quit()
+
+
 
 
 
