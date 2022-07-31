@@ -1,4 +1,4 @@
-# code is now messy, now includes ability to purchase 2 different towers and stop and start enemies moving into the map with a button
+# code still messy. can now select or deselect towers, then purchase an upgrade on it. increasing price needed. more enemy types and others needed for balanced game
 
 
 
@@ -67,11 +67,15 @@ class Tower(pygame.sprite.Sprite):
         self.Img = pygame.transform.scale(pygame.image.load("basictower.png"), (size[0] / scale, size[1] / scale))
         self.rect = self.Img.get_rect()
         pygame.sprite.Sprite.__init__(self)
-
+        self.u = pygame.draw.rect(screen, (255, 215, 0), pygame.Rect(850, 400, 100, 80))
+        self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] / scale / 2, self.y + size[0] / scale / 2), self.radius)
+        self.selected = False
     def drawradius(self):
         self.r = pygame.draw.circle(surface, (255,255,255, 100), (self.x + size[0] / scale / 2, self.y + size[0] / scale / 2), self.radius)
     def isoncooldown(self):
         return self.oncooldown
+    def upgrademenu(self):
+        self.u = pygame.draw.rect(screen, (255, 215, 0), pygame.Rect(850, 400, 100, 80))
 
 class Tower2(Tower):
     def __init__(self, x, y):
@@ -104,49 +108,62 @@ while run: # main game loop
         if event.type == pygame.MOUSEBUTTONDOWN:
             m = pygame.mouse.get_pos()
 
+            for t in towers:
+                print("here")
+                if pygame.Rect(t.x, t.y, 80, 80).collidepoint(m):
+                    for s in towers:
+                        if s == t:
+                            s.selected = not s.selected
+                        else:
+                            s.selected = False
+
+                if t.selected:
+                    if t.u.collidepoint(m):
+                        if money >= 100:
+                            t.dmg += 5
+                            t.radius += 2
+                            money -= 100
+
+
+
             # tower 1 stuff
-            if m[0] >= 850 and m[0] <= 950 and m[1] >= 40 and m[1] <= 120:
-                if tower1buy == True:
-                    tower1buy = False
-                elif tower1buy == False:
-                    tower1buy = True
-                    tower2buy = False
+            if basetowermenu.collidepoint(m):
+                tower1buy = not tower1buy
+                tower2buy = False
             if tower1buy == True and m[0] < 800 and money >= Tower1cost:
                 towers.append(Tower(m[0], m[1]))
                 money -= Tower1cost
 
             #tower 2 stuff
 
-            if m[0] >= 850 and m[0] <= 950 and m[1] >= 200 and m[1] <= 280:
-                if tower2buy == True:
-                    tower2buy = False
-                elif tower2buy == False:
-                    tower1buy = False
-                    tower2buy = True
+            if bigtowermenu.collidepoint(m):
+                tower2buy = not tower2buy
+                tower1buy = False
             if tower2buy == True and m[0] < 800 and money >= Tower2cost:
                 towers.append(Tower2(m[0], m[1]))
                 money -= Tower2cost
 
-            if m[0] >= 850 and m[0] <= 950 and m[1] >= 720 and m[1] <= 800:
-                if roundgo == True:
-                    roundgo = False
-                elif roundgo == False:
-                    roundgo = True
+            # controls whether enemies are spawning
+            if menubutton.collidepoint(m):
+                roundgo = not roundgo
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
-                    enemies.append(Enemy(-80, 80))
+                for i in range(0, 50, 10):
+                    enemies.append(Enemy(-80-i, 80))
+
 
     # logic
     if roundgo:
         enemydelay -= 1
         if enemydelay <= 0:
             enemies.append(Enemy(-80, 80))
-            enemydelay = 60
+            enemydelay = 5
 
 
     # graphics
     screen.fill((101, 79, 33))
-
+    surface.fill((0, 0, 0, 0))
     # maploader
     count = 0
     count2 = 0
@@ -186,7 +203,9 @@ while run: # main game loop
 
     for t in towers:
         screen.blit(t.Img, (t.x, t.y))
-        t.drawradius()
+        if t.selected == True:
+            t.drawradius()
+            t.upgrademenu()
 
 
     roundgocolour = (0, 255, 0)
@@ -240,8 +259,3 @@ while run: # main game loop
     clock.tick(60)
 
 pygame.quit()
-
-
-
-
-
