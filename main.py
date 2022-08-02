@@ -1,7 +1,3 @@
-# code still messy. can now select or deselect towers, then purchase an upgrade on it. increasing price needed. more enemy types and others needed for balanced game
-
-
-
 import pygame
 import random
 import copy
@@ -55,6 +51,22 @@ class Enemy(pygame.sprite.Sprite):
         else:
             return False
 
+class Enemy2(Enemy):
+    def __init__(self, x, y):
+        Enemy.__init__(self, x, y)
+        self.hp = 250
+        self.speed = 10
+        self.weight = 5
+        self.Img = pygame.transform.scale(pygame.image.load("Enemy2.png"), (size[0] // scale, size[1] // scale))
+
+class Enemy3(Enemy):
+    def __init__(self, x, y):
+        Enemy.__init__(self, x, y)
+        self.hp = 75
+        self.speed = 20
+        self.weight = 10
+        self.Img = pygame.transform.scale(pygame.image.load("Enemy3.png"), (size[0] // scale, size[1] // scale))
+
 class Tower(pygame.sprite.Sprite):
     def __init__(self, x, y):
         self.cooldown = 60
@@ -100,6 +112,14 @@ roundgo = False
 
 enemydelay = 5
 
+roundprogressing = False
+r1 = ["1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 5]
+r2 = ["1", 5, "1", 5, "1", 5, "1", 5, "1", 20, "2", 30, "2", 5]
+r3 = ["3", 30, "3", 5]
+r4 = ["1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30]
+
+rounds = [r1, r2, r3, r4]
+
 while run: # main game loop
     # events, keypresses
     for event in pygame.event.get():
@@ -144,8 +164,9 @@ while run: # main game loop
                 money -= Tower2cost
 
             # controls whether enemies are spawning
-            if menubutton.collidepoint(m):
-                roundgo = not roundgo
+            if menubutton.collidepoint(m) and enemies == []:
+                if roundprogressing == False:
+                    roundprogressing = True
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
@@ -154,12 +175,33 @@ while run: # main game loop
 
 
     # logic
-    if roundgo:
-        enemydelay -= 1
-        if enemydelay <= 0:
-            enemies.append(Enemy(-80, 80))
-            enemydelay = 5
-
+    if roundgo or roundprogressing:
+         enemydelay -= 1
+         if enemydelay <= 0:
+             if rounds == []:
+                 enemies.append(Enemy3(-80, 80))
+                 enemydelay = 60
+             elif rounds[0] == []:
+                    rounds.pop(0)
+                    roundprogressing = False
+         #enemies.append(Enemy(-80, 80))
+             if rounds == []:
+                 continue
+             if rounds[0][0] == "1":
+                  enemies.append(Enemy(-80, 80))
+                  rounds[0].pop(0)
+                  enemydelay = rounds[0][0]
+                  rounds[0].pop(0)
+             elif rounds[0][0] == "2":
+                  enemies.append(Enemy2(-80, 80))
+                  rounds[0].pop(0)
+                  enemydelay = rounds[0][0]
+                  rounds[0].pop(0)
+             elif rounds[0][0] == "3":
+                  enemies.append(Enemy3(-80, 80))
+                  rounds[0].pop(0)
+                  enemydelay = rounds[0][0]
+                  rounds[0].pop(0)
 
     # graphics
     screen.fill((101, 79, 33))
@@ -209,7 +251,7 @@ while run: # main game loop
 
 
     roundgocolour = (0, 255, 0)
-    if roundgo:
+    if roundprogressing:
         roundgocolour = (255, 0, 0)
     menubutton = pygame.draw.rect(screen, roundgocolour, pygame.Rect(850, 720, 100, 80))
 
@@ -259,3 +301,5 @@ while run: # main game loop
     clock.tick(60)
 
 pygame.quit()
+
+
