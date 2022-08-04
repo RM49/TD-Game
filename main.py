@@ -14,17 +14,27 @@ grassImg = pygame.transform.scale(pygame.image.load("grass.png"), (size[0]//scal
 dirtImg = pygame.transform.scale(pygame.image.load("dirt.png"), (size[0]//scale, size[1]//scale))
 waterImg = pygame.transform.scale(pygame.image.load("water.png"), (size[0]//scale, size[1]//scale))
 
+shopimg = pygame.transform.scale(pygame.image.load("shop_icon_background.png"), (size[0] // scale, size[1] // scale))
+shopimg_selected = pygame.transform.scale(pygame.image.load("shop_icon_selected.png"), (size[0] // scale, size[1] // scale))
+
+# tower images
+
+tower1_img = pygame.transform.scale(pygame.image.load("basictower.png"), (size[0] // scale, size[1] // scale))
+tower2_img = pygame.transform.scale(pygame.image.load("bigtower.png"), (size[0] // scale, size[1] // scale))
+tower3_img = pygame.transform.scale(pygame.image.load("boat2.png"), (size[0] // scale, size[1] // scale))
+
 map = open("map1", "r")
 tiles = map.readlines()
 map.close()
 
 route1 = [(0, 80), (640, 80), (640, 640), (800, 640)]
 health = 150
-money = 2000
+money = 10000
 
 pygame.init()
 pygame.font.init()
 my_font = pygame.font.SysFont("arial", 30)
+
 
 screen = pygame.display.set_mode(windowsize)
 surface = pygame.Surface(size, pygame.SRCALPHA)
@@ -82,12 +92,17 @@ class Tower(pygame.sprite.Sprite):
         self.u = pygame.draw.rect(screen, (255, 215, 0), pygame.Rect(850, 400, 100, 80))
         self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
         self.selected = False
+        self.upgradecost = 100
     def drawradius(self):
         self.r = pygame.draw.circle(surface, (255,255,255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
     def isoncooldown(self):
         return self.oncooldown
     def upgrademenu(self):
-        self.u = pygame.draw.rect(screen, (255, 215, 0), pygame.Rect(850, 400, 100, 80))
+        self.u = pygame.Rect(810, 400, 180, 60)
+        self.u_img = pygame.transform.scale(pygame.image.load("upgrade_icon.png"), (180, 60))
+        screen.blit(self.u_img, (810, 400))
+        screen.blit(my_font.render("£" + str(self.upgradecost), False, (255, 255, 255)), (850, 415))
+
 
 class Tower2(Tower):
     def __init__(self, x, y):
@@ -97,6 +112,7 @@ class Tower2(Tower):
         self.cooldown = 20
         self.radius = 250
         self.Img = pygame.transform.scale(pygame.image.load("bigtower.png"), (size[0] // scale, size[1] // scale))
+        self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
 
 class Tower3(Tower):
     def __init__(self, x, y):
@@ -105,7 +121,8 @@ class Tower3(Tower):
         self.maxcooldown = 20
         self.cooldown = 20
         self.radius = 500
-        self.Img = pygame.transform.scale(pygame.image.load("boat.png"), (200, 200))
+        self.Img = pygame.transform.scale(pygame.image.load("boat.png"), (size[0] // scale, size[1] // scale))
+        self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
 
 enemies = []
 towers = []
@@ -174,7 +191,7 @@ while run: # main game loop
                     onwater = False
 
             # tower 1 stuff
-            if basetowermenu.collidepoint(m):
+            if tower1shop_rect.collidepoint(m):
                 tower1buy = not tower1buy
                 tower2buy = False
                 tower3buy = False
@@ -186,7 +203,7 @@ while run: # main game loop
 
             #tower 2 stuff
 
-            if bigtowermenu.collidepoint(m):
+            if tower2shop_rect.collidepoint(m):
                 tower2buy = not tower2buy
                 tower1buy = False
                 tower3buy = False
@@ -196,7 +213,7 @@ while run: # main game loop
                     money -= Tower2cost
                     tower2buy = False
 
-            if boattowermenu.collidepoint(m):
+            if tower3shop_rect.collidepoint(m):
                 tower3buy = not tower3buy
                 tower1buy = False
                 tower2buy = False
@@ -299,24 +316,27 @@ while run: # main game loop
         roundgocolour = (255, 0, 0)
     menubutton = pygame.draw.rect(screen, roundgocolour, pygame.Rect(850, 720, 100, 80))
 
-    tower1buttoncolour = (0, 0, 255)
+
+    tower1shop_rect = pygame.Rect(810, 40, 80, 80)
     if tower1buy:
-        tower1buttoncolour = (0, 100, 100)
+        tower1shop = screen.blit(shopimg_selected, (810, 40))
+    else:
+        tower1shop = screen.blit(shopimg, (810, 40))
+    tower1icon = screen.blit(tower1_img, (810, 40))
 
-    basetowermenu = pygame.draw.rect(screen, tower1buttoncolour, pygame.Rect(850, 40, 100, 80))
-
-    tower2buttoncolour = (0, 0, 255)
+    tower2shop_rect = pygame.Rect(910, 40, 80, 80)
     if tower2buy:
-        tower2buttoncolour = (0, 200, 200)
+        tower2shop = screen.blit(shopimg_selected, (910, 40))
+    else:
+        tower2shop = screen.blit(shopimg, (910, 40))
+    tower2icon = screen.blit(tower2_img, (910, 40))
 
-    bigtowermenu = pygame.draw.rect(screen, tower2buttoncolour, pygame.Rect(850, 200, 100, 80))
-
-
-    tower3buttoncolour = (50, 50, 200)
+    tower3shop_rect = pygame.Rect(810, 130, 80, 80)
     if tower3buy:
-        tower3buttoncolour = (100, 100, 50)
-
-    boattowermenu = pygame.draw.rect(screen, tower3buttoncolour, pygame.Rect(850, 360, 100, 80))
+        tower3shop = screen.blit(shopimg_selected, (810, 130))
+    else:
+        tower3shop = screen.blit(shopimg, (810, 130))
+    tower3icon = screen.blit(tower3_img, (810, 130))
 
     moneytext = my_font.render("£" + str(money), False, (255,255,255))
     screen.blit(moneytext, (850, 0))
