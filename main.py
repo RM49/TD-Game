@@ -2,6 +2,10 @@ import pygame
 import random
 import copy
 import time
+import math
+
+# add types of tower attacks
+# increasing upgrade cost
 
 size = (800, 800)
 scale=10
@@ -93,6 +97,7 @@ class Tower(pygame.sprite.Sprite):
         self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
         self.selected = False
         self.upgradecost = 100
+        self.attacktype = "basic"
     def drawradius(self):
         self.r = pygame.draw.circle(surface, (255,255,255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
     def isoncooldown(self):
@@ -113,6 +118,7 @@ class Tower2(Tower):
         self.radius = 250
         self.Img = pygame.transform.scale(pygame.image.load("bigtower.png"), (size[0] // scale, size[1] // scale))
         self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
+        self.attacktype = "basic"
 
 class Tower3(Tower):
     def __init__(self, x, y):
@@ -123,7 +129,16 @@ class Tower3(Tower):
         self.radius = 500
         self.Img = pygame.transform.scale(pygame.image.load("boat.png"), (size[0] // scale, size[1] // scale))
         self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
-
+        self.attacktype = "explosion"
+        self.projectilex = 0
+        self.projectiley = 0
+        self.projectiletime = 60
+        self.targetx = 0
+        self.targety = 0
+        self.step_x = 1
+        self.step_y = 1
+        self.projectileairtime = 0
+        self.attacking = False
 enemies = []
 towers = []
 
@@ -138,7 +153,7 @@ tower3cost = 1000
 enemydelay = 5
 
 roundprogressing = False
-r1 = ["1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 5]
+r1 = ["1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 5, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 5]
 r2 = ["1", 5, "1", 5, "1", 5, "1", 5, "1", 20, "2", 30, "2", 5]
 r3 = ["3", 30, "3", 5]
 r4 = ["1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30]
@@ -232,7 +247,6 @@ while run: # main game loop
                 for i in range(0, 50, 10):
                     enemies.append(Enemy(-80-i, 80))
 
-
     # logic
     if roundgo or roundprogressing:
          enemydelay -= 1
@@ -302,20 +316,16 @@ while run: # main game loop
                 enemies.pop(enemies.index(e))
                 print(health)
 
-
-
     for t in towers:
         screen.blit(t.Img, (t.x, t.y))
         if t.selected == True:
             t.drawradius()
             t.upgrademenu()
 
-
     roundgocolour = (0, 255, 0)
     if roundprogressing:
         roundgocolour = (255, 0, 0)
     menubutton = pygame.draw.rect(screen, roundgocolour, pygame.Rect(850, 720, 100, 80))
-
 
     tower1shop_rect = pygame.Rect(810, 40, 80, 80)
     if tower1buy:
@@ -342,28 +352,73 @@ while run: # main game loop
     screen.blit(moneytext, (850, 0))
 
     for t in towers:
-        for e in enemies:
-            rect = pygame.Rect(e.x, e.y, int(size[0] / scale), int(size[0] / scale))
-            rect2 = pygame.Rect(t.x, t.y, int(size[0] / scale), int(size[0] / scale))
-            if pygame.Rect(t.r).colliderect(rect) == True:
-                print(e)
-                print(t.isoncooldown())
-                if t.isoncooldown() == False:
-                    pygame.draw.line(screen, (255, 0, 0), (t.x+68, t.y+20), (e.x+40, e.y+40), width=5)
-                    e.damage(t.dmg)
-                    print(e.hp)
-                    if e.isDead():
-                        enemies.pop(enemies.index(e))
-                        money += 50
+        if t.attacktype == "explosion":
+            if t.attacking == True:
+                t.projectileairtime += 1
+                if t.projectileairtime > 70:
+                    t.attacking = False
                     t.oncooldown = True
                     t.cooldown = t.maxcooldown
-                    break
+                    continue
+                e_rect = pygame.Rect(t.projectilex, t.projectiley, 40, 40)
+                projectile = pygame.draw.rect(screen, (255, 0, 0, 50), (t.projectilex, t.projectiley, 40, 40))
+                enemycollisions = []
+                for e in enemies:
+                    if e_rect.colliderect(pygame.Rect(e.x, e.y, 80, 80)):
+                        print("here")
+                        enemycollisions.append(enemies.index(e))
+                print(enemycollisions)
+                if enemycollisions != []:
+                    for e in enemycollisions:
+                        enemies[e].damage(t.dmg)
+                        print(enemies[e].hp)
+                    t.attacking = False
+                    t.oncooldown = True
+                    t.cooldown = t.maxcooldown
+                else:
+                    if t.projectilex > t.targetx:
+                        t.projectilex -= t.step_x
+                    elif t.projectilex < t.targetx:
+                        t.projectilex += t.step_x
+                    if t.projectiley > t.targety:
+                        t.projectiley -= t.step_y
+                    elif t.projectiley < t.targety:
+                        t.projectiley += t.step_y
+
+
+        for e in enemies:
+            rect = pygame.Rect(e.x, e.y, int(size[0] / scale), int(size[0] / scale)) # enemy rect
+
+            if pygame.Rect(t.r).colliderect(rect) == True: # checks if an enemy is in the towers radius
+
+                if t.oncooldown == False:
+                    if t.attacktype == "basic":
+                        pygame.draw.line(screen, (255, 0, 0), (t.x+68, t.y+20), (e.x+40, e.y+40), width=5)
+                        e.damage(t.dmg)
+                        t.oncooldown = True
+                        t.cooldown = t.maxcooldown
+                    elif t.attacktype == "explosion":
+                        if t.attacking == False:
+                            t.targetx = e.x + 40
+                            t.targety = e.y + 40
+                            t.projectilex = t.x
+                            t.projectiley = t.y
+                            temp = e.x - t.x
+                            temp2 = e.y - t.y
+                            tt = t.projectiletime
+                            t.step_x = abs(temp // tt)
+                            t.step_y = abs(temp2 // tt)
+                            t.attacking = True
+                            t.projectileairtime = 0
+
+            if e.isDead():
+                money += e.weight
+                enemies.pop(enemies.index(e))
+
         if t.isoncooldown() == True:
-            t.cooldown -= 10
+            t.cooldown -= 1
             if t.cooldown <= 0:
                 t.oncooldown = False
-
-
 
     # update
     screen.blit(surface, (0,0))
@@ -372,4 +427,3 @@ while run: # main game loop
     clock.tick(60)
 
 pygame.quit()
-
