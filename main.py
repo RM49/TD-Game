@@ -8,24 +8,26 @@ import math
 # increasing upgrade cost
 
 size = (800, 800)
-scale=10
+scale=25
+towerscale = 15
+iconscale = 10
 windowsize = (1000,800)
 run = True
 clock = pygame.time.Clock()
 
 # tile imgs
-grassImg = pygame.transform.scale(pygame.image.load("grass.png"), (size[0]//scale, size[1]//scale))
-dirtImg = pygame.transform.scale(pygame.image.load("dirt.png"), (size[0]//scale, size[1]//scale))
-waterImg = pygame.transform.scale(pygame.image.load("water.png"), (size[0]//scale, size[1]//scale))
+grassImg = pygame.transform.scale(pygame.image.load("./assets/grass.png"), (size[0]//scale, size[1]//scale))
+dirtImg = pygame.transform.scale(pygame.image.load("./assets/dirt.png"), (size[0]//scale, size[1]//scale))
+waterImg = pygame.transform.scale(pygame.image.load("./assets/water.png"), (size[0]//scale, size[1]//scale))
 
-shopimg = pygame.transform.scale(pygame.image.load("shop_icon_background.png"), (size[0] // scale, size[1] // scale))
-shopimg_selected = pygame.transform.scale(pygame.image.load("shop_icon_selected.png"), (size[0] // scale, size[1] // scale))
+shopimg = pygame.transform.scale(pygame.image.load("./assets/shop_icon_background.png"), (size[0] // iconscale, size[1] // iconscale))
+shopimg_selected = pygame.transform.scale(pygame.image.load("./assets/shop_icon_selected.png"), (size[0] // iconscale, size[1] // iconscale))
 
 # tower images
 
-tower1_img = pygame.transform.scale(pygame.image.load("basictower.png"), (size[0] // scale, size[1] // scale))
-tower2_img = pygame.transform.scale(pygame.image.load("bigtower.png"), (size[0] // scale, size[1] // scale))
-tower3_img = pygame.transform.scale(pygame.image.load("boat2.png"), (size[0] // scale, size[1] // scale))
+tower1_img = pygame.transform.scale(pygame.image.load("./assets/basictower.png"), (size[0] // iconscale, size[1] // iconscale))
+tower2_img = pygame.transform.scale(pygame.image.load("./assets/bigtower.png"), (size[0] // iconscale, size[1] // iconscale))
+tower3_img = pygame.transform.scale(pygame.image.load("./assets/boat2.png"), (size[0] // iconscale, size[1] // iconscale))
 
 map = open("map1", "r")
 tiles = map.readlines()
@@ -33,7 +35,7 @@ map.close()
 
 route1 = [(0, 80), (640, 80), (640, 640), (800, 640)]
 health = 150
-money = 10000
+money = 1000
 
 pygame.init()
 pygame.font.init()
@@ -43,18 +45,19 @@ my_font = pygame.font.SysFont("arial", 30)
 screen = pygame.display.set_mode(windowsize)
 surface = pygame.Surface(size, pygame.SRCALPHA)
 
-temp = (50,50)
+
 oncooldown = False
 cooldown = 0
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        self.hp = 100
+        self.hp = 1
         self.speed = 1
         self.x = x
         self.y = y
         self.waypointval = 0
         self.weight = 1
-        self.Img = pygame.transform.scale(pygame.image.load("duck.png"), (size[0]//scale, size[1]//scale))
+        self.Img = pygame.transform.scale(pygame.image.load("./assets/duck.png"), (size[0]//scale, size[1]//scale))
         pygame.sprite.Sprite.__init__(self)
         self.rect = self.Img.get_rect()
     def damage(self, amt):
@@ -68,18 +71,18 @@ class Enemy(pygame.sprite.Sprite):
 class Enemy2(Enemy):
     def __init__(self, x, y):
         Enemy.__init__(self, x, y)
-        self.hp = 350
+        self.hp = 20
         self.speed = 1
-        self.weight = 5
-        self.Img = pygame.transform.scale(pygame.image.load("Enemy2.png"), (size[0] // scale, size[1] // scale))
+        self.weight = 35
+        self.Img = pygame.transform.scale(pygame.image.load("./assets/Enemy2.png"), (size[0] // scale, size[1] // scale))
 
 class Enemy3(Enemy):
     def __init__(self, x, y):
         Enemy.__init__(self, x, y)
-        self.hp = 75
+        self.hp = 5
         self.speed = 5
         self.weight = 10
-        self.Img = pygame.transform.scale(pygame.image.load("Enemy3.png"), (size[0] // scale, size[1] // scale))
+        self.Img = pygame.transform.scale(pygame.image.load("./assets/Enemy3.png"), (size[0] // scale, size[1] // scale))
 
 class Tower(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -87,68 +90,75 @@ class Tower(pygame.sprite.Sprite):
         self.maxcooldown = 60
         self.oncooldown = True
         self.radius = 100
-        self.dmg = 5
+        self.dmg = 1
         self.x = x - size[0] / scale / 2
         self.y = y - size[0] / scale / 2
-        self.Img = pygame.transform.scale(pygame.image.load("basictower.png"), (size[0] // scale, size[1] // scale))
+        self.Img = pygame.transform.scale(pygame.image.load("./assets/basictower.png"), (size[0] // towerscale, size[1] // towerscale))
         self.rect = self.Img.get_rect()
         pygame.sprite.Sprite.__init__(self)
         self.u = pygame.draw.rect(screen, (255, 215, 0), pygame.Rect(850, 400, 100, 80))
-        self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
+        self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // towerscale // 2, self.y + size[0] // towerscale // 2), self.radius)
         self.selected = False
         self.upgradecost = 100
         self.attacktype = "basic"
+        self.value = 500
+        self.sell = pygame.Rect(880, 400, 180, 60)
     def drawradius(self):
-        self.r = pygame.draw.circle(surface, (255,255,255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
+        self.r = pygame.draw.circle(surface, (255,255,255, 100), (self.x + size[0] // towerscale // 2, self.y + size[0] // towerscale // 2), self.radius)
     def isoncooldown(self):
         return self.oncooldown
     def upgrademenu(self):
         self.u = pygame.Rect(810, 400, 180, 60)
-        self.u_img = pygame.transform.scale(pygame.image.load("upgrade_icon.png"), (180, 60))
+        self.u_img = pygame.transform.scale(pygame.image.load("./assets/upgrade_icon.png"), (180, 60))
         screen.blit(self.u_img, (810, 400))
         screen.blit(my_font.render("£" + str(self.upgradecost), False, (255, 255, 255)), (850, 415))
+    def sellmenu(self):
+        self.sell = pygame.Rect(810, 470, 180, 60)
+        self.s_img = pygame.draw.rect(screen, (255, 0, 0), (810, 470, 180, 60))
 
 
 class Tower2(Tower):
     def __init__(self, x, y):
         Tower.__init__(self, x, y)
-        self.dmg = 50
-        self.maxcooldown = 20
-        self.cooldown = 20
+        self.dmg = 1
+        self.maxcooldown = 10
+        self.cooldown = 10
         self.radius = 250
-        self.Img = pygame.transform.scale(pygame.image.load("bigtower.png"), (size[0] // scale, size[1] // scale))
-        self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
+        self.Img = pygame.transform.scale(pygame.image.load("./assets/bigtower.png"), (size[0] // towerscale, size[1] // towerscale))
+        self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // towerscale // 2, self.y + size[0] // towerscale // 2), self.radius)
         self.attacktype = "basic"
 
 class Tower3(Tower):
     def __init__(self, x, y):
         Tower.__init__(self, x, y)
-        self.dmg = 50
+        self.dmg = 5
         self.maxcooldown = 20
         self.cooldown = 20
         self.radius = 500
-        self.Img = pygame.transform.scale(pygame.image.load("boat.png"), (size[0] // scale, size[1] // scale))
-        self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // scale // 2, self.y + size[0] // scale // 2), self.radius)
+        self.Img = pygame.transform.scale(pygame.image.load("./assets/boat.png"), (size[0] // towerscale, size[1] // towerscale))
+        self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // towerscale // 2, self.y + size[0] // towerscale // 2), self.radius)
         self.attacktype = "explosion"
+        # required for explosion tower
         self.projectilex = 0
         self.projectiley = 0
-        self.projectiletime = 60
+        self.projectiletime = 30
         self.targetx = 0
         self.targety = 0
         self.step_x = 1
         self.step_y = 1
         self.projectileairtime = 0
         self.attacking = False
+
 enemies = []
 towers = []
 
 tower1buy = False
 Tower1cost = 500
 tower2buy = False
-Tower2cost = 3500
+Tower2cost = 1000
 roundgo = False
 tower3buy = False
-tower3cost = 1000
+tower3cost = 3500
 
 enemydelay = 5
 
@@ -188,6 +198,9 @@ while run: # main game loop
                             t.dmg += 5
                             t.radius += 2
                             money -= 100
+                    if t.sell.collidepoint(m):
+                        money += t.value
+                        towers.pop(towers.index(t))
 
             for r in dirt_tiles: # checks to see if the mouse is on a dirt or water tile
                 if r.colliderect(pygame.Rect(m[0], m[1], 15, 15)):
@@ -212,7 +225,7 @@ while run: # main game loop
                 tower3buy = False
             if tower1buy == True and m[0] < 800 and money >= Tower1cost:
                 if ondirt == False and onwater == False:
-                    towers.append(Tower(m[0], m[1]))
+                    towers.append(Tower(m[0]-20, m[1]-20))
                     money -= Tower1cost
                     tower1buy = False
 
@@ -321,6 +334,7 @@ while run: # main game loop
         if t.selected == True:
             t.drawradius()
             t.upgrademenu()
+            t.sellmenu()
 
     roundgocolour = (0, 255, 0)
     if roundprogressing:
@@ -427,3 +441,4 @@ while run: # main game loop
     clock.tick(60)
 
 pygame.quit()
+
