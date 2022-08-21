@@ -3,12 +3,10 @@ import random
 import copy
 import time
 import math
-
-# add types of tower attacks
-# increasing upgrade cost
+from pygame import mixer
 
 size = (800, 800)
-scale=25
+scale=15
 towerscale = 15
 iconscale = 10
 windowsize = (1000,800)
@@ -29,18 +27,28 @@ tower1_img = pygame.transform.scale(pygame.image.load("./assets/basictower.png")
 tower2_img = pygame.transform.scale(pygame.image.load("./assets/bigtower.png"), (size[0] // iconscale, size[1] // iconscale))
 tower3_img = pygame.transform.scale(pygame.image.load("./assets/boat2.png"), (size[0] // iconscale, size[1] // iconscale))
 
-map = open("map1", "r")
-tiles = map.readlines()
-map.close()
+map1 = pygame.transform.scale(pygame.image.load("./assets/map1.png"), (800, 700))
+map1dirttiles = [pygame.Rect(0, 350, 150, 60), pygame.Rect(110, 150, 40, 200), pygame.Rect(108, 142, 211, 64), pygame.Rect(267, 146, 53, 343), pygame.Rect(268, 422, 264, 68), pygame.Rect(481, 281, 53, 203), pygame.Rect(481, 281, 317, 65)]
+map1watertiles = []
+map2 = pygame.transform.scale(pygame.image.load("./assets/map2.png"), (800, 700))
+map2dirttiles = [pygame.Rect(0, 133, 178, 44), pygame.Rect(137, 138, 40, 220), pygame.Rect(138, 538,45, 324), pygame.Rect(182, 636, 579, 42), pygame.Rect(717, 322, 42, 356), pygame.Rect(434, 323, 325, 40), pygame.Rect(433, 0, 41, 363)]
+map2watertiles = [pygame.Rect(203, 190, 197, 259)]
+map3 = []
 
-route1 = [(0, 80), (640, 80), (640, 640), (800, 640)]
+map = []
+
+route1 = [(-80, 350), (105, 350), (105, 145), (270, 145), (270, 430), (480, 430), (480, 290), (800, 290)]
+route2 = [(-80, 138), (137, 137), (137, 645), (737, 645), (737, 323), (438, 323), (438, 0)]
+route3 = []
+route = []
+
 health = 150
-money = 1000
+money = 10000
 
 pygame.init()
 pygame.font.init()
 my_font = pygame.font.SysFont("arial", 30)
-
+pygame.mixer.init(devicename='CABLE Input (VB-Audio Virtual Cable)')
 
 screen = pygame.display.set_mode(windowsize)
 surface = pygame.Surface(size, pygame.SRCALPHA)
@@ -101,7 +109,7 @@ class Tower(pygame.sprite.Sprite):
         self.selected = False
         self.upgradecost = 100
         self.attacktype = "basic"
-        self.value = 500
+        self.value = 400
         self.sell = pygame.Rect(880, 400, 180, 60)
     def drawradius(self):
         self.r = pygame.draw.circle(surface, (255,255,255, 100), (self.x + size[0] // towerscale // 2, self.y + size[0] // towerscale // 2), self.radius)
@@ -124,6 +132,7 @@ class Tower2(Tower):
         self.maxcooldown = 10
         self.cooldown = 10
         self.radius = 250
+        self.value = 800
         self.Img = pygame.transform.scale(pygame.image.load("./assets/bigtower.png"), (size[0] // towerscale, size[1] // towerscale))
         self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // towerscale // 2, self.y + size[0] // towerscale // 2), self.radius)
         self.attacktype = "basic"
@@ -135,6 +144,7 @@ class Tower3(Tower):
         self.maxcooldown = 20
         self.cooldown = 20
         self.radius = 500
+        self.value = 3000
         self.Img = pygame.transform.scale(pygame.image.load("./assets/boat.png"), (size[0] // towerscale, size[1] // towerscale))
         self.r = pygame.draw.circle(surface, (255, 255, 255, 100), (self.x + size[0] // towerscale // 2, self.y + size[0] // towerscale // 2), self.radius)
         self.attacktype = "explosion"
@@ -156,14 +166,16 @@ tower1buy = False
 Tower1cost = 500
 tower2buy = False
 Tower2cost = 1000
-roundgo = False
 tower3buy = False
 tower3cost = 3500
 
 enemydelay = 5
-
+roundgo = False
 roundprogressing = False
-r1 = ["1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 5, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 5]
+roundsdone = 0
+
+r1 = ["1", 10]
+#r1 = ["1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 5, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 10, "1", 5]
 r2 = ["1", 5, "1", 5, "1", 5, "1", 5, "1", 20, "2", 30, "2", 5]
 r3 = ["3", 30, "3", 5]
 r4 = ["1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30, "1", 30, "2", 30, "3", 30]
@@ -175,6 +187,67 @@ water_tiles = []
 ondirt = False
 onwater = False
 
+titlescreen=True
+while titlescreen:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            titlescreen = False
+            run = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            m = pygame.mouse.get_pos()
+            print(m)
+            if pygame.Rect(36, 390, 375, 85).collidepoint(m): # map 1
+                route=route1
+                map = map1
+                dirt_tiles = map1dirttiles
+                titlescreen = False
+
+            if pygame.Rect(40, 510, 375, 85).collidepoint(m):
+                route=route2
+                map = map2
+                dirt_tiles = map2dirttiles
+                water_tiles = map2watertiles
+                titlescreen = False
+
+            if pygame.Rect(40, 640, 375, 85).collidepoint(m):
+                route = route3
+                print("3")
+                # map
+                titlescreen = False
+
+    screen.blit(pygame.transform.scale(pygame.image.load("./assets/title-bg-buttons.png"), windowsize), (0, 0))
+    pygame.display.flip()
+    clock.tick(60)
+
+# play animation
+
+def squaresequence(x1, y1, x2, y2, isx, step):
+    if isx:
+        for i in range(x1, y1, step):
+            pygame.draw.rect(screen, (0, 0, 0), (i, y2, 100, 100))
+            pygame.display.flip()
+            time.sleep(0.05)
+    else:
+        for i in range(x1, y1, step):
+            pygame.draw.rect(screen, (0, 0, 0), (x2, i, 100, 100))
+            pygame.display.flip()
+            time.sleep(0.05)
+
+# if 1==2:
+#     squaresequence(0, 1000, 0, 0, True, 100)
+#     squaresequence(100, 800, 900, 0, False, 100)
+#     squaresequence(800, -100, 0, 700, True, -100)
+#     squaresequence(600, 0, 0, 0, False, -100)
+#     squaresequence(100, 900, 0, 100, True, 100)
+
+enemyspawnxy = route[0]
+route.pop(0)
+
+if map == map2:
+    sound = pygame.mixer.Sound("./audio/map2.wav")
+    sound.set_volume(0.03)
+    sound.play(-1)
+
 while run: # main game loop
     # events, keypresses
     for event in pygame.event.get():
@@ -182,9 +255,9 @@ while run: # main game loop
             run = False
         if event.type == pygame.MOUSEBUTTONDOWN:
             m = pygame.mouse.get_pos()
+            # all of the code dealing with a mouseclick
 
             for t in towers:
-                print("here")
                 if pygame.Rect(t.x, t.y, 80, 80).collidepoint(m): # manages which tower is selected
                     for s in towers:
                         if s == t:
@@ -192,18 +265,19 @@ while run: # main game loop
                         else:
                             s.selected = False
 
-                if t.selected: # tower upgrade button
+                if t.selected: # tower upgrade button logic
                     if t.u.collidepoint(m):
                         if money >= 100:
                             t.dmg += 5
                             t.radius += 2
                             money -= 100
+                            t.value += 80
                     if t.sell.collidepoint(m):
                         money += t.value
                         towers.pop(towers.index(t))
 
-            for r in dirt_tiles: # checks to see if the mouse is on a dirt or water tile
-                if r.colliderect(pygame.Rect(m[0], m[1], 15, 15)):
+            for r in dirt_tiles: # checks to see if the mouse click is on a dirt or water tile
+                if r.colliderect(pygame.Rect(m[0], m[1], 10, 10)):
                     ondirt = True
                     print("on dirt")
                     break
@@ -211,26 +285,25 @@ while run: # main game loop
                     ondirt = False
 
             for w in water_tiles:
-                if w.colliderect(pygame.Rect(m[0], m[1], 15, 15)):
+                if w.colliderect(pygame.Rect(m[0], m[1], 10, 10)):
                     onwater = True
                     print("on water")
                     break
                 else:
                     onwater = False
 
-            # tower 1 stuff
+            # tower 1 shop button functionality
             if tower1shop_rect.collidepoint(m):
                 tower1buy = not tower1buy
                 tower2buy = False
                 tower3buy = False
             if tower1buy == True and m[0] < 800 and money >= Tower1cost:
                 if ondirt == False and onwater == False:
-                    towers.append(Tower(m[0]-20, m[1]-20))
+                    towers.append(Tower(m[0], m[1]))
                     money -= Tower1cost
                     tower1buy = False
 
-            #tower 2 stuff
-
+            #tower 2 shop button
             if tower2shop_rect.collidepoint(m):
                 tower2buy = not tower2buy
                 tower1buy = False
@@ -241,6 +314,7 @@ while run: # main game loop
                     money -= Tower2cost
                     tower2buy = False
 
+            # tower 3 shop button
             if tower3shop_rect.collidepoint(m):
                 tower3buy = not tower3buy
                 tower1buy = False
@@ -250,6 +324,7 @@ while run: # main game loop
                     towers.append(Tower3(m[0], m[1]))
                     money -= tower3cost
                     tower3buy = False
+
             # controls whether enemies are spawning
             if menubutton.collidepoint(m) and enemies == []:
                 if roundprogressing == False:
@@ -265,26 +340,28 @@ while run: # main game loop
          enemydelay -= 1
          if enemydelay <= 0:
              if rounds == []:
-                 enemies.append(Enemy3(-80, 80))
+                 enemies.append(Enemy3(-80, 350))
                  enemydelay = 10
              elif rounds[0] == []:
                     rounds.pop(0)
                     roundprogressing = False
+                    roundsdone += 1
+                    money += 50 * roundsdone
          #enemies.append(Enemy(-80, 80))
              if rounds == []:
                  continue
              if rounds[0][0] == "1":
-                  enemies.append(Enemy(-80, 80))
+                  enemies.append(Enemy(enemyspawnxy[0], enemyspawnxy[1]))
                   rounds[0].pop(0)
                   enemydelay = rounds[0][0]
                   rounds[0].pop(0)
              elif rounds[0][0] == "2":
-                  enemies.append(Enemy2(-80, 80))
+                  enemies.append(Enemy2(enemyspawnxy[0], enemyspawnxy[1]))
                   rounds[0].pop(0)
                   enemydelay = rounds[0][0]
                   rounds[0].pop(0)
              elif rounds[0][0] == "3":
-                  enemies.append(Enemy3(-80, 80))
+                  enemies.append(Enemy3(enemyspawnxy[0], enemyspawnxy[1]))
                   rounds[0].pop(0)
                   enemydelay = rounds[0][0]
                   rounds[0].pop(0)
@@ -292,42 +369,35 @@ while run: # main game loop
     # graphics
     screen.fill((101, 79, 33))
     surface.fill((0, 0, 0, 0))
-    # maploader
-    count = 0
-    count2 = 0
 
-    for i in range(0, size[0], int(size[0]/scale)):
-        y = i
-        for i in range(0, size[0], int(size[0]/scale)):
-            x = i
-            if tiles[count][count2] == "G":
-                screen.blit(grassImg, (x, y))
-            elif tiles[count][count2] == "W":
-                screen.blit(waterImg, (x, y))
-                water_tiles.append(pygame.Rect(x, y, int(size[0]/scale), int(size[0]/scale)))
-            elif tiles[count][count2] == "D":
-                screen.blit(dirtImg, (x, y))
-                dirt_tiles.append(pygame.Rect(x, y, int(size[0]/scale), int(size[0]/scale)))
-            count2 += 1
-        count2=0
-        count += 1
+    # map
+    screen.blit(map, (0, 0))
 
     for e in enemies: # draws all the enemies onto the screen
         screen.blit(e.Img, (e.x, e.y))
-        if e.x <= route1[e.waypointval][0]:
+        # controls movement of the enemies
+        if e.x < route[e.waypointval][0]:
             e.x += e.speed
-        elif e.x >= route1[e.waypointval][0]:
+            if e.x > route[e.waypointval][0]:
+                e.x = route[e.waypointval][0]
+        elif e.x > route[e.waypointval][0]:
             e.x -= e.speed
-        if e.y <= route1[e.waypointval][1]:
+            if e.x < route[e.waypointval][0]:
+                e.x = route[e.waypointval][0]
+        if e.y < route[e.waypointval][1]:
             e.y += e.speed
-        elif e.y >= route1[e.waypointval][1]:
+            if e.y > route[e.waypointval][1]:
+                e.y = route[e.waypointval][1]
+        elif e.y > route[e.waypointval][1]:
             e.y -= e.speed
-        if e.x == route1[e.waypointval][0] and e.y == route1[e.waypointval][1]:
+            if e.y < route[e.waypointval][1]:
+                e.y = route[e.waypointval][1]
+        if e.x == route[e.waypointval][0] and e.y == route[e.waypointval][1]:
             e.waypointval += 1
-            if e.waypointval > len(route1) - 1:
+            if e.waypointval > len(route) - 1:
                 health -= e.weight
-                enemies.pop(enemies.index(e))
                 print(health)
+                enemies.pop(enemies.index(e))
 
     for t in towers:
         screen.blit(t.Img, (t.x, t.y))
@@ -336,11 +406,16 @@ while run: # main game loop
             t.upgrademenu()
             t.sellmenu()
 
-    roundgocolour = (0, 255, 0)
-    if roundprogressing:
+    # colours button in bottom right either green or red depending on whether a new round can be triggered
+    if enemies == []:
+        roundgocolour = (0, 255, 0)
+    elif roundprogressing:
+        roundgocolour = (255, 0, 0)
+    else:
         roundgocolour = (255, 0, 0)
     menubutton = pygame.draw.rect(screen, roundgocolour, pygame.Rect(850, 720, 100, 80))
 
+    # graphics for all of the shop icons along with selected glow around them
     tower1shop_rect = pygame.Rect(810, 40, 80, 80)
     if tower1buy:
         tower1shop = screen.blit(shopimg_selected, (810, 40))
@@ -362,10 +437,12 @@ while run: # main game loop
         tower3shop = screen.blit(shopimg, (810, 130))
     tower3icon = screen.blit(tower3_img, (810, 130))
 
+    # draws the total money of the player
     moneytext = my_font.render("£" + str(money), False, (255,255,255))
     screen.blit(moneytext, (850, 0))
 
     for t in towers:
+        # entire chunk of code to deal with if the tower has a splash projectile
         if t.attacktype == "explosion":
             if t.attacking == True:
                 t.projectileairtime += 1
@@ -407,19 +484,19 @@ while run: # main game loop
 
                 if t.oncooldown == False:
                     if t.attacktype == "basic":
-                        pygame.draw.line(screen, (255, 0, 0), (t.x+68, t.y+20), (e.x+40, e.y+40), width=5)
+                        pygame.draw.line(screen, (255, 0, 0), (t.x + 45, t.y + 12), (e.x + 25+random.randint(0, 10), e.y+15+random.randint(1,10)), width=5) # random targeting makes the attack feel a bit more natural as oppposed to all towers hitting the enmey in the exact same spot
                         e.damage(t.dmg)
                         t.oncooldown = True
                         t.cooldown = t.maxcooldown
                     elif t.attacktype == "explosion":
                         if t.attacking == False:
-                            t.targetx = e.x + 40
-                            t.targety = e.y + 40
+                            t.targetx = e.x
+                            t.targety = e.y
                             t.projectilex = t.x
                             t.projectiley = t.y
                             temp = e.x - t.x
                             temp2 = e.y - t.y
-                            tt = t.projectiletime
+                            tt = t.projectiletime # these 5 lines gives the projectile a speed based on the distance to the target to let each projectile take the same time
                             t.step_x = abs(temp // tt)
                             t.step_y = abs(temp2 // tt)
                             t.attacking = True
@@ -441,4 +518,3 @@ while run: # main game loop
     clock.tick(60)
 
 pygame.quit()
-
